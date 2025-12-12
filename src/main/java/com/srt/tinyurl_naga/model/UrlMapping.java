@@ -5,8 +5,8 @@ import lombok.*;
 import java.time.Instant;
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
 @Entity
 @Table(indexes = { @Index(name = "idx_short_code", columnList = "shortCode")})
@@ -14,11 +14,16 @@ public class UrlMapping {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(unique = true, nullable = false)
+    @Column( nullable = false)
     private String originalUrl;
     @Column(unique = true, nullable = false)
     private String shortCode;
     private Instant creationDate;
     private Instant expiresAt;
     private Long clickCount;
+
+    @PrePersist
+    public void onCreate(){
+        if(this.creationDate==null)creationDate = Instant.now();
+    }
 }
