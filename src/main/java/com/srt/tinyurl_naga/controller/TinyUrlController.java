@@ -2,6 +2,7 @@ package com.srt.tinyurl_naga.controller;
 
 import com.srt.tinyurl_naga.dto.ShortUrlResponse;
 import com.srt.tinyurl_naga.dto.UrlMappingRequest;
+import com.srt.tinyurl_naga.model.UrlMapping;
 import com.srt.tinyurl_naga.service.UrlService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,14 @@ public class TinyUrlController {
     }
     @PostMapping
     public ResponseEntity<ShortUrlResponse> getShortUrl(@RequestBody UrlMappingRequest urlMappingRequest) {
-        return null;
+        UrlMapping urlMapping = urlService.shortenUrl(urlMappingRequest);
+        if (urlMapping == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
+        shortUrlResponse.setShortCode(urlMapping.getShortCode());
+        shortUrlResponse.setShortUrl("localhost:8080/api/url/" + urlMapping.getShortCode());
+        return ResponseEntity.ok(shortUrlResponse);
     }
     @GetMapping("/{shortCode}")
     public ResponseEntity<Object> resolveShortCode(@PathVariable String shortCode) {
