@@ -4,6 +4,7 @@ import com.srt.tinyurl_naga.dto.ShortUrlResponse;
 import com.srt.tinyurl_naga.dto.UrlMappingRequest;
 import com.srt.tinyurl_naga.model.UrlMapping;
 import com.srt.tinyurl_naga.service.UrlService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,11 @@ import java.net.URI;
 @RestController
 @RequestMapping("/api/url")
 public class TinyUrlController {
+    @Value("${publicDomain:http://localhost:8081}")
+    public String publicDomain;
+
     private UrlService urlService;
+
     public TinyUrlController(UrlService urlService) {
         this.urlService = urlService;
     }
@@ -25,7 +30,7 @@ public class TinyUrlController {
         }
         ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
         shortUrlResponse.setShortCode(urlMapping.getShortCode());
-        shortUrlResponse.setShortUrl("localhost:8080/api/url/" + urlMapping.getShortCode());
+        shortUrlResponse.setShortUrl(publicDomain+"/api/url/" + urlMapping.getShortCode());
         return ResponseEntity.ok(shortUrlResponse);
     }
     @GetMapping("/{shortCode}")
