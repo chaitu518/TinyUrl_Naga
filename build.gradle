@@ -8,6 +8,7 @@ group = 'com.srt'
 version = '0.0.1-SNAPSHOT'
 description = 'TinyUrl_Naga'
 
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
