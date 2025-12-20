@@ -6,6 +6,6 @@ import com.srt.tinyurl_naga.model.UrlMapping;
 import java.util.Optional;
 
 public interface UrlService {
-    String shortenUrl(UrlMappingRequest urlMappingRequest);
+    UrlMapping shortenUrl(UrlMappingRequest urlMappingRequest);
     Optional<UrlMapping> resolveUrl(String shortCode);
 }

@@ -8,4 +8,5 @@ import lombok.Setter;
 public class UrlMappingRequest {
     private String url;
     private String shortCode;
+    private Long ttl;
 }
