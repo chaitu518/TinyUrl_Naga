@@ -14,9 +14,11 @@ import java.net.URI;
 @RestController
 @RequestMapping("/api/url")
 public class TinyUrlController {
+    @Value("${publicDomain:http://localhost:8081}")
+    public String publicDomain;
+
     private UrlService urlService;
-    @Value("${publicDomain}")
-    private String publicDomain;
+
     public TinyUrlController(UrlService urlService) {
         this.urlService = urlService;
     }
