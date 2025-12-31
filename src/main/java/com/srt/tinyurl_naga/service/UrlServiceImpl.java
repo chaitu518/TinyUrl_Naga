@@ -1,15 +1,21 @@
 package com.srt.tinyurl_naga.service;
 
 import com.srt.tinyurl_naga.Respository.TinyUrlRepository;
+import com.srt.tinyurl_naga.dto.ShortUrlResponse;
 import com.srt.tinyurl_naga.dto.UrlMappingRequest;
 import com.srt.tinyurl_naga.model.UrlMapping;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class UrlServiceImpl implements UrlService {
+    @Value("${publicDomain:http://localhost:8081}")
+    public String publicDomain;
     private TinyUrlRepository urlRepository;
     public UrlServiceImpl(TinyUrlRepository urlRepository) {
         this.urlRepository = urlRepository;
@@ -39,5 +45,15 @@ public class UrlServiceImpl implements UrlService {
     @Override
     public Optional<UrlMapping> resolveUrl(String shortCode) {
         return urlRepository.findByShortCode(shortCode);
+    }
+    public List<ShortUrlResponse> getAllShortUrls() {
+        List<ShortUrlResponse> shortUrlResponses = new ArrayList<>();
+        urlRepository.findAll().forEach(shortUrl -> {
+            ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
+            shortUrlResponse.setShortCode(shortUrl.getShortCode());
+            shortUrlResponse.setShortUrl(publicDomain+"/api/url/" + shortUrl.getShortCode());
+            shortUrlResponses.add(shortUrlResponse);
+        });
+        return shortUrlResponses;
     }
 }

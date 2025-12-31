@@ -6,10 +6,12 @@ import com.srt.tinyurl_naga.model.UrlMapping;
 import com.srt.tinyurl_naga.service.UrlService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/url")
@@ -41,6 +43,10 @@ public class TinyUrlController {
             headers.setLocation(uri);
             return ResponseEntity.status(302).headers(headers).build();
         }).orElseGet(()->ResponseEntity.notFound().build());
+    }
+    @GetMapping
+    public ResponseEntity<List<ShortUrlResponse>> getShortUrl() {
+        return new ResponseEntity<>(urlService.getAllShortUrls(), HttpStatus.OK);
     }
 
 }
