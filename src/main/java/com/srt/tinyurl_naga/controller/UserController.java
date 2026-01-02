@@ -46,7 +46,7 @@ public class UserController {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
-
+        if(request.getPassword().isEmpty()) throw new RuntimeException("Password cannot be empty");
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
