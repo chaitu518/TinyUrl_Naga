@@ -51,7 +51,7 @@ public class UrlServiceImpl implements UrlService {
         urlRepository.findAll().forEach(shortUrl -> {
             ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
             shortUrlResponse.setShortCode(shortUrl.getShortCode());
-            shortUrlResponse.setShortUrl(publicDomain+"/api/url/" + shortUrl.getShortCode());
+            shortUrlResponse.setShortUrl(publicDomain+"/api/shortUrl/" + shortUrl.getShortCode());
             shortUrlResponses.add(shortUrlResponse);
         });
         return shortUrlResponses;
