@@ -2,6 +2,7 @@ package com.srt.tinyurl_naga.controller;
 
 import com.srt.tinyurl_naga.Respository.UserRepository;
 import com.srt.tinyurl_naga.Security.model.CustomUserDetails;
+import com.srt.tinyurl_naga.Security.service.GoogleTokenVerifierService;
 import com.srt.tinyurl_naga.dto.AuthResponse;
 import com.srt.tinyurl_naga.dto.RegisterRequest;
 import com.srt.tinyurl_naga.dto.UserLoginDto;
@@ -14,21 +15,25 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
+    private final GoogleTokenVerifierService googleVerifier;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
     public UserController(
-            UserRepository userRepository,
+            GoogleTokenVerifierService googleVerifier, UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
             JwtService jwtService
     ) {
+        this.googleVerifier = googleVerifier;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -68,5 +73,30 @@ public class UserController {
 
         return new AuthResponse(jwtService.generateToken(user));
     }
+    @PostMapping("/google")
+    public AuthResponse googleLogin(@RequestBody Map<String, String> body) {
+
+        String idToken = body.get("idToken");
+
+        var payload = googleVerifier.verify(idToken);
+
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User u = new User();
+                    u.setEmail(email);
+                    u.setName(name);
+                    u.setProvider(AuthProvider.GOOGLE);
+                    u.setEmailVerified(true);
+                    return userRepository.save(u);
+                });
+
+        String jwt = jwtService.generateToken(user);
+
+        return new AuthResponse(jwt);
+    }
+
 
 }
