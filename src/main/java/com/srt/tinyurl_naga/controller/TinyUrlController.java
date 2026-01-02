@@ -34,7 +34,7 @@ public class TinyUrlController {
         }
         ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
         shortUrlResponse.setShortCode(urlMapping.getShortCode());
-        shortUrlResponse.setShortUrl(publicDomain+"/api/url/" + urlMapping.getShortCode());
+        shortUrlResponse.setShortUrl(publicDomain+"/api/shortUrl/" + urlMapping.getShortCode());
         return ResponseEntity.ok(shortUrlResponse);
     }
     @GetMapping("/shortUrl/{shortCode}")
