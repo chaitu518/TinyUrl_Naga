@@ -1,6 +1,7 @@
 package com.srt.tinyurl_naga.controller;
 
 
+import com.resend.core.exception.ResendException;
 import com.srt.tinyurl_naga.dto.AuthResponse;
 import com.srt.tinyurl_naga.dto.RegisterRequest;
 import com.srt.tinyurl_naga.dto.UserLoginDto;
@@ -27,7 +28,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) throws ResendException {
         return new ResponseEntity<>(userService.register(request), HttpStatus.OK);
     }
 
