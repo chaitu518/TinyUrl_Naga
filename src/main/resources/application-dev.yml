@@ -38,4 +38,5 @@ google:
     client-id: ${GOOGLE_CLIENT_ID}
 
 frontend:
-  baseurl: ${FRONTEND_BASE_URL}
+  base:
+    url: ${FRONTEND_BASE_URL}
