@@ -1,6 +1,7 @@
 package com.srt.tinyurl_naga.service;
 
 
+import com.resend.core.exception.ResendException;
 import com.srt.tinyurl_naga.Respository.UserRepository;
 import com.srt.tinyurl_naga.Security.service.GoogleTokenVerifierService;
 import com.srt.tinyurl_naga.dto.AuthResponse;
@@ -56,7 +57,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String register(RegisterRequest request) {
+    public String register(RegisterRequest request) throws ResendException {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }

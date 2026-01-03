@@ -1,19 +1,23 @@
 package com.srt.tinyurl_naga.service;
 
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
 import com.srt.tinyurl_naga.Respository.UserRepository;
 import com.srt.tinyurl_naga.model.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+
+
 
 @Service
 public class EmailServiceImpl implements EmailService {
     private final UserRepository userRepository;
-    private final JavaMailSender mailSender;
+    private final Resend resend;
     private JwtService jwtService;
-    public EmailServiceImpl(UserRepository userRepository, JavaMailSender mailSender, JwtService jwtService) {
+    public EmailServiceImpl(UserRepository userRepository, @Value("${resend.api.key}") String apiKey, JwtService jwtService) {
         this.userRepository = userRepository;
-        this.mailSender = mailSender;
+        this.resend = new Resend(apiKey);
         this.jwtService = jwtService;
     }
     public String verifyEmail(String token) {
@@ -27,18 +31,20 @@ public class EmailServiceImpl implements EmailService {
 
         return "Email verified successfully";
     }
-    public void sendVerificationEmail(String to, String verificationLink) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject("Verify your email - TinyUrl");
-        message.setText(
-                "Welcome to TinyUrl!\n\n" +
-                        "Please verify your email by clicking the link below:\n\n" +
-                        verificationLink + "\n\n" +
-                        "This link will expire in 24 hours.\n\n" +
-                        "If you didn’t sign up, please ignore this email."
-        );
+    public void sendVerificationEmail(String to, String verificationLink) throws ResendException {
+        CreateEmailOptions email = CreateEmailOptions.builder()
+                .from("TinyURL <noreply@chaitu.theraja.in>")
+                .to(to)
+                .subject("Verify your email")
+                .html("""
+                        <h2>Email Verification</h2>
+                        <p>Please verify your email:</p>
+                        <a href="%s">Verify Email</a>
+                        <br/><br/>
+                        <small>This link expires in 24 hours</small>
+                        """.formatted(verificationLink))
+                .build();
 
-        mailSender.send(message);
+        resend.emails().send(email);
     }
 }
