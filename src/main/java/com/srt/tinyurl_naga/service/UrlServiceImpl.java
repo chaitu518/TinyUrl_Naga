@@ -6,14 +6,17 @@ import com.srt.tinyurl_naga.dto.ShortUrlResponse;
 import com.srt.tinyurl_naga.dto.UrlMappingRequest;
 import com.srt.tinyurl_naga.model.UrlMapping;
 import com.srt.tinyurl_naga.model.User;
-import com.srt.tinyurl_naga.utility.Base62Encoder;
 import com.srt.tinyurl_naga.utility.SecurityUtils;
+import com.srt.tinyurl_naga.utility.ShortCodeGenerator;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,27 +31,49 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    public UrlMapping shortenUrl(UrlMappingRequest urlMappingRequest) {
-        User user = userRepository.findByEmail(SecurityUtils.getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
-        String originalUrl = urlMappingRequest.getUrl();
-        String shortCode = urlMappingRequest.getShortCode();
-        Long ttl = urlMappingRequest.getTtl();
-        if(originalUrl == null ) {
-            throw new RuntimeException("Original url is null");
+    @Transactional
+    public UrlMapping shortenUrl(UrlMappingRequest request) {
+
+        User user = userRepository
+                .findByEmail(SecurityUtils.getCurrentUserEmail())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+
+        if (request.getUrl() == null || request.getUrl().isBlank()) {
+            throw new RuntimeException("Original URL is required");
         }
 
         UrlMapping urlMapping = UrlMapping.builder()
-                    .originalUrl(originalUrl)
-                    .expiresAt(ttl!=null?Instant.now().plusSeconds(ttl):Instant.now().plusSeconds(8000))
-                    .accessCount(0L)
-                    .user(user)
-                    .creationDate(Instant.now())
-                    .build();
-        UrlMapping savedUrlMapping = urlRepository.save(urlMapping);
-        savedUrlMapping.setShortCode(shortCode==null?Base62Encoder.encode(savedUrlMapping.getId()):shortCode);
+                .originalUrl(request.getUrl())
+                .accessCount(0L)
+                .user(user)
+                .creationDate(Instant.now())
+                .expiresAt(
+                        request.getTtl() != null
+                                ? Instant.now().plusSeconds(request.getTtl())
+                                : Instant.now().plusSeconds(800)
+                )
+                .build();
 
-        return urlRepository.save(savedUrlMapping);
+        // CRITICAL FIX: flush immediately
+        urlRepository.saveAndFlush(urlMapping);
+
+        String shortCode;
+        if (request.getShortCode() != null && !request.getShortCode().isBlank()) {
+
+            if (urlRepository.existsByShortCode(request.getShortCode())) {
+                throw new RuntimeException("Short code already exists");
+            }
+            shortCode = request.getShortCode();
+
+        } else {
+            shortCode = ShortCodeGenerator.generate(urlMapping.getId());
+        }
+
+        urlMapping.setShortCode(shortCode);
+
+        return urlRepository.save(urlMapping);
     }
+
 
     @Override
     public Optional<UrlMapping> resolveUrl(String shortCode) {
@@ -61,18 +86,38 @@ public class UrlServiceImpl implements UrlService {
         return Optional.of(urlRepository.save(urlMapping.get()));
 
     }
-    public List<ShortUrlResponse> getAllShortUrls() {
-        String email = SecurityUtils.getCurrentUserEmail();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public Page<ShortUrlResponse> getUrls(
+            Long userId,
+            int page,
+            int size,
+            String q
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "creationDate")
+        );
 
-        return urlRepository.findByUser(user)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+        Page<UrlMapping> result;
+
+        if (q == null || q.isBlank()) {
+            result = urlRepository.findByUserId(userId, pageable);
+        } else {
+            result = urlRepository.search(userId, q.toLowerCase(), pageable);
+        }
+
+        return result.map(this::mapToResponse);
     }
+
+
+    @Override
+    public void deleteShortUrl(Long id) {
+        urlRepository.deleteById(id);
+    }
+
     private ShortUrlResponse mapToResponse(UrlMapping url) {
         return ShortUrlResponse.builder()
+                .id(url.getId())
                 .originalUrl(url.getOriginalUrl())
                 .shortUrl(publicDomain+"/api/shortUrl/" + url.getShortCode())
                 .shortCode(url.getShortCode())
