@@ -11,6 +11,7 @@ import java.time.Instant;
 @Setter
 @Builder
 public class ShortUrlResponse {
+    private Long id;
     private String originalUrl;
     private String shortUrl;
     private String shortCode;
