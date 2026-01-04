@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class TinyUrlController {
-    @Value("${publicDomain:http://localhost:8080}")
+    @Value("${publicDomain:http://localhost:8081}")
     public String publicDomain;
 
     private UrlService urlService;
@@ -26,21 +26,23 @@ public class TinyUrlController {
     public TinyUrlController(UrlService urlService) {
         this.urlService = urlService;
     }
-    @PostMapping("/{userId}/url")
-    public ResponseEntity<ShortUrlResponse> getShortUrl(@PathVariable Long userId,@RequestBody UrlMappingRequest urlMappingRequest) {
-        urlMappingRequest.setUserId(userId);
+    @PostMapping("/url")
+    public ResponseEntity<ShortUrlResponse> getShortUrl(@RequestBody UrlMappingRequest urlMappingRequest) {
         UrlMapping urlMapping = urlService.shortenUrl(urlMappingRequest);
         if (urlMapping == null) {
             return ResponseEntity.notFound().build();
         }
-        ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
-        shortUrlResponse.setShortCode(urlMapping.getShortCode());
-        shortUrlResponse.setTtl(urlMapping.getExpiresAt());
-        shortUrlResponse.setShortUrl(publicDomain+"/api/"+userId+"/shortUrl/" + urlMapping.getShortCode());
+        ShortUrlResponse shortUrlResponse = ShortUrlResponse.builder()
+                .originalUrl(urlMapping.getOriginalUrl())
+                .shortCode(urlMapping.getShortCode())
+                .shortUrl(publicDomain+"/api/shortUrl/" + urlMapping.getShortCode())
+                .expiresAt(urlMapping.getExpiresAt())
+                .accessCount(urlMapping.getAccessCount())
+                .build();
         return ResponseEntity.ok(shortUrlResponse);
     }
-    @GetMapping("/{userId}/shortUrl/{shortCode}")
-    public ResponseEntity<Object> resolveShortCode(@PathVariable Long userId,@PathVariable String shortCode) {
+    @GetMapping("/shortUrl/{shortCode}")
+    public ResponseEntity<Object> resolveShortCode(@PathVariable String shortCode) {
         return urlService.resolveUrl(shortCode).map(m->{
             URI uri = URI.create(m.getOriginalUrl());
             HttpHeaders headers = new HttpHeaders();
@@ -48,9 +50,9 @@ public class TinyUrlController {
             return ResponseEntity.status(302).headers(headers).build();
         }).orElseGet(()->ResponseEntity.notFound().build());
     }
-    @GetMapping("/{userId}/url")
-    public ResponseEntity<List<ShortUrlResponse>> getShortUrl(@PathVariable Long userId) {
-        return new ResponseEntity<>(urlService.getAllShortUrls(userId), HttpStatus.OK);
+    @GetMapping("/url")
+    public ResponseEntity<List<ShortUrlResponse>> getShortUrl() {
+        return new ResponseEntity<>(urlService.getAllShortUrls(), HttpStatus.OK);
     }
     @GetMapping("/url/me")
     public String me(Authentication authentication) {
