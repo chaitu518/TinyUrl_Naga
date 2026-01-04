@@ -21,7 +21,7 @@ public class UrlServiceImpl implements UrlService {
     private final UserRepository userRepository;
     @Value("${publicDomain:http://localhost:8080}")
     public String publicDomain;
-    private TinyUrlRepository urlRepository;
+    private final TinyUrlRepository urlRepository;
     public UrlServiceImpl(TinyUrlRepository urlRepository, UserRepository userRepository) {
         this.urlRepository = urlRepository;
         this.userRepository = userRepository;
@@ -29,7 +29,7 @@ public class UrlServiceImpl implements UrlService {
 
     @Override
     public UrlMapping shortenUrl(UrlMappingRequest urlMappingRequest) {
-        User user = userRepository.findById(urlMappingRequest.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(SecurityUtils.getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
         String originalUrl = urlMappingRequest.getUrl();
         String shortCode = urlMappingRequest.getShortCode();
         Long ttl = urlMappingRequest.getTtl();
@@ -74,6 +74,7 @@ public class UrlServiceImpl implements UrlService {
     private ShortUrlResponse mapToResponse(UrlMapping url) {
         return ShortUrlResponse.builder()
                 .originalUrl(url.getOriginalUrl())
+                .shortUrl(publicDomain+"/api/shortUrl/" + url.getShortCode())
                 .shortCode(url.getShortCode())
                 .accessCount(url.getAccessCount())
                 .expiresAt(url.getExpiresAt())
