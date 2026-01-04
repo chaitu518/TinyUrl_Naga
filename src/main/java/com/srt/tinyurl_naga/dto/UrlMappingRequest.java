@@ -9,5 +9,4 @@ public class UrlMappingRequest {
     private String url;
     private String shortCode;
     private Long ttl;
-    private Long userId;
 }
