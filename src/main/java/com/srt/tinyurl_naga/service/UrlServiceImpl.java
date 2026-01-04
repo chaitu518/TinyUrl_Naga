@@ -7,6 +7,7 @@ import com.srt.tinyurl_naga.dto.UrlMappingRequest;
 import com.srt.tinyurl_naga.model.UrlMapping;
 import com.srt.tinyurl_naga.model.User;
 import com.srt.tinyurl_naga.utility.Base62Encoder;
+import com.srt.tinyurl_naga.utility.SecurityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -60,14 +61,23 @@ public class UrlServiceImpl implements UrlService {
         return Optional.of(urlRepository.save(urlMapping.get()));
 
     }
-    public List<ShortUrlResponse> getAllShortUrls(Long userId) {
-        List<ShortUrlResponse> shortUrlResponses = new ArrayList<>();
-        urlRepository.findAll().forEach(shortUrl -> {
-            ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
-            shortUrlResponse.setShortCode(shortUrl.getShortCode());
-            shortUrlResponse.setShortUrl(publicDomain+"/api/"+userId+"/shortUrl/" + shortUrl.getShortCode());
-            shortUrlResponses.add(shortUrlResponse);
-        });
-        return shortUrlResponses;
+    public List<ShortUrlResponse> getAllShortUrls() {
+        String email = SecurityUtils.getCurrentUserEmail();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return urlRepository.findByUser(user)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
+    private ShortUrlResponse mapToResponse(UrlMapping url) {
+        return ShortUrlResponse.builder()
+                .originalUrl(url.getOriginalUrl())
+                .shortCode(url.getShortCode())
+                .accessCount(url.getAccessCount())
+                .expiresAt(url.getExpiresAt())
+                .build();
+    }
+
 }

@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface UrlService {
     UrlMapping shortenUrl(UrlMappingRequest urlMappingRequest);
     Optional<UrlMapping> resolveUrl(String shortCode);
-    public List<ShortUrlResponse> getAllShortUrls(Long userId);
+    public List<ShortUrlResponse> getAllShortUrls();
 }
