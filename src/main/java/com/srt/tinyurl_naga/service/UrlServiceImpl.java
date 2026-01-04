@@ -1,9 +1,12 @@
 package com.srt.tinyurl_naga.service;
 
 import com.srt.tinyurl_naga.Respository.TinyUrlRepository;
+import com.srt.tinyurl_naga.Respository.UserRepository;
 import com.srt.tinyurl_naga.dto.ShortUrlResponse;
 import com.srt.tinyurl_naga.dto.UrlMappingRequest;
 import com.srt.tinyurl_naga.model.UrlMapping;
+import com.srt.tinyurl_naga.model.User;
+import com.srt.tinyurl_naga.utility.Base62Encoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,44 +17,55 @@ import java.util.Optional;
 
 @Service
 public class UrlServiceImpl implements UrlService {
-    @Value("${publicDomain:http://localhost:8081}")
+    private final UserRepository userRepository;
+    @Value("${publicDomain:http://localhost:8080}")
     public String publicDomain;
     private TinyUrlRepository urlRepository;
-    public UrlServiceImpl(TinyUrlRepository urlRepository) {
+    public UrlServiceImpl(TinyUrlRepository urlRepository, UserRepository userRepository) {
         this.urlRepository = urlRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
     public UrlMapping shortenUrl(UrlMappingRequest urlMappingRequest) {
+        User user = userRepository.findById(urlMappingRequest.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
         String originalUrl = urlMappingRequest.getUrl();
         String shortCode = urlMappingRequest.getShortCode();
         Long ttl = urlMappingRequest.getTtl();
         if(originalUrl == null ) {
             throw new RuntimeException("Original url is null");
         }
-        if(shortCode != null ) {
-            UrlMapping urlMapping = UrlMapping.builder()
+
+        UrlMapping urlMapping = UrlMapping.builder()
                     .originalUrl(originalUrl)
-                    .shortCode(shortCode)
-                    .expiresAt(ttl>0?Instant.now().plusSeconds(ttl):Instant.now())
-                    .clickCount(0L)
+                    .expiresAt(ttl!=null?Instant.now().plusSeconds(ttl):Instant.now().plusSeconds(8000))
+                    .accessCount(0L)
+                    .user(user)
                     .creationDate(Instant.now())
                     .build();
-           return urlRepository.save(urlMapping);
-        }
-        return null;
+        UrlMapping savedUrlMapping = urlRepository.save(urlMapping);
+        savedUrlMapping.setShortCode(shortCode==null?Base62Encoder.encode(savedUrlMapping.getId()):shortCode);
+
+        return urlRepository.save(savedUrlMapping);
     }
 
     @Override
     public Optional<UrlMapping> resolveUrl(String shortCode) {
-        return urlRepository.findByShortCode(shortCode);
+
+        Optional<UrlMapping> urlMapping = urlRepository.findByShortCode(shortCode);
+        if(urlMapping.isEmpty()) {
+            throw new RuntimeException("Url not found");
+        }
+        urlMapping.get().setAccessCount(urlMapping.get().getAccessCount()+1);
+        return Optional.of(urlRepository.save(urlMapping.get()));
+
     }
-    public List<ShortUrlResponse> getAllShortUrls() {
+    public List<ShortUrlResponse> getAllShortUrls(Long userId) {
         List<ShortUrlResponse> shortUrlResponses = new ArrayList<>();
         urlRepository.findAll().forEach(shortUrl -> {
             ShortUrlResponse shortUrlResponse = new ShortUrlResponse();
             shortUrlResponse.setShortCode(shortUrl.getShortCode());
-            shortUrlResponse.setShortUrl(publicDomain+"/api/shortUrl/" + shortUrl.getShortCode());
+            shortUrlResponse.setShortUrl(publicDomain+"/api/"+userId+"/shortUrl/" + shortUrl.getShortCode());
             shortUrlResponses.add(shortUrlResponse);
         });
         return shortUrlResponses;

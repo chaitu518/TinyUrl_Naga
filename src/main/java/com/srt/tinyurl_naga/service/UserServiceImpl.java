@@ -53,7 +53,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Please verify your email first");
         }
 
-        return new AuthResponse(jwtService.generateToken(user));
+        return new AuthResponse(user.getId(),jwtService.generateToken(user));
     }
 
     @Override
@@ -97,7 +97,7 @@ public class UserServiceImpl implements UserService {
 
         String jwt = jwtService.generateToken(user);
 
-        return new AuthResponse(jwt);
+        return new AuthResponse(user.getId(),jwt);
     }
 
 }
